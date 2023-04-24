@@ -39,18 +39,41 @@ def games():
 
     return response
 
-@app.route('/games/<int:id>')
+@app.route('/games/<int:id>', methods=['GET', 'DELETE', 'PATCH'])
 def game_by_id(id):
-    game = Game.query.filter(Game.id == id).first()
+    if request.method == 'GET':
+        game = Game.query.filter(Game.id == id).first()    
+        game_dict = game.to_dict()
+        response = make_response(
+            game_dict,
+            200
+        )
+        return response
+    elif request.method == 'DELETE':
+        to_delete = Game.query.filter(Game.id == id).first()
+        resp = to_delete.id
+        db.session.delete(to_delete)
+        db.session.commit()
+        return make_response(f"ID: {resp}", 200)
+    else:
+        to_patch = Game.query.filter(Game.id == id).first()
+        for atr in request.form:
+            setattr(to_patch, atr, request.form.get(atr))
+        db.session.commit()
+        return make_response(f"{to_patch}",202)
+
+@app.route('/games', methods=['POST'])
+def post_game():
+    # genre = db.Column(db.String)
+    # platform = db.Column(db.String)
+    # price = db.Column(db.Integer)
+    new_game = Game(title=request.form.get('title'), genre=request.form.get('genre'),platform=request.form.get('platform'), price=request.form.get('price'))
+    db.session.add(new_game)
+    db.session.commit()
+    r = Game.query.filter(Game.title == new_game.title).first()
+    return f'<h1>Added {r}</h1>'
     
-    game_dict = game.to_dict()
 
-    response = make_response(
-        game_dict,
-        200
-    )
-
-    return response
 
 @app.route('/reviews')
 def reviews():
